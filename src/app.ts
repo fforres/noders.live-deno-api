@@ -69,13 +69,14 @@ export class App {
   };
 
   #handleRoutes = async (req: server.ServerRequest) => {
-    console.info(`[${req.method}] entrando para: ${req.url}`);
-    const possibleFunction = this.#getRouteHandler(req.method)?.get(req.url);
+    const { pathname } = new URL(req.url, `http://localhost:${this.port}`);
+    console.info(`[${req.method}] para pathname =>: ${pathname}`);
+    const possibleFunction = this.#getRouteHandler(req.method)?.get(pathname);
     if (possibleFunction) {
-      console.info(`[${req.method}] handler encontrado para: ${req.url}`);
+      console.info(`[${req.method}] handler encontrado para: ${pathname}`);
       await possibleFunction(req);
     } else {
-      console.error(`[${req.method}] handler NO ENCONTRADO para: ${req.url}`);
+      console.error(`[${req.method}] handler NO ENCONTRADO para: ${pathname}`);
     }
   };
 
@@ -88,7 +89,9 @@ export class App {
   startListening = async () => {
     this.server = server.serve({ port: this.port });
     console.log(
-      `\n 🔥🔥🔥 Servidor corriendo en el puerto :${this.port} 🔥🔥🔥 \n\n`
+      green(
+        `\n 🔥🔥🔥 Servidor corriendo en el puerto :${this.port} 🔥🔥🔥 \n\n`
+      )
     );
     for await (const req of this.server) {
       try {
@@ -98,7 +101,7 @@ export class App {
         if (typeof this.onUnexpectedRouteError === "function") {
           this.onUnexpectedRouteError(error as Error, req);
         } else {
-          throw error;
+          throw new Error(error);
         }
       } finally {
         if ((req as any).finalized === false) {
