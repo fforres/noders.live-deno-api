@@ -12,3 +12,19 @@ export const parseSearch = (queryString: string) => {
   }
   return query;
 };
+
+export const commands = {
+  VOTE: "VOTE",
+} as const;
+
+export const parseTwitchMessage = (message: string) => {
+  const rawMessage = message?.split("PRIVMSG")[1]?.split(":")[1];
+  let command = null;
+  if (rawMessage[0] === "!") {
+    command = commands.VOTE;
+  }
+  return {
+    command,
+    mesage: rawMessage,
+  };
+};

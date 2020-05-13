@@ -1,17 +1,16 @@
-import * as log from "https://deno.land/std/log/mod.ts";
+import { parseTwitchMessage } from "./utils.ts";
 import * as server from "https://deno.land/std/http/server.ts";
-import { blue, green, red, yellow } from "https://deno.land/std/fmt/colors.ts";
+import { green, red, yellow } from "https://deno.land/std/fmt/colors.ts";
 import {
   connectWebSocket,
   isWebSocketCloseEvent,
+  WebSocket,
 } from "https://deno.land/std/ws/mod.ts";
-import { encode } from "https://deno.land/std/encoding/utf8.ts";
-import { BufReader } from "https://deno.land/std/io/bufio.ts";
-import { TextProtoReader } from "https://deno.land/std/textproto/mod.ts";
 import {
   TWITCH_SOCKET_PASS,
   TWITCH_SOCKET_NICK,
   TWITCH_SOCKET_URL,
+  TWITCH_SOCKET_LOGIN,
 } from "./config.ts";
 
 type RequestHandler = (req: server.ServerRequest) => Promise<void>;
@@ -20,6 +19,7 @@ type ErrorHandler = (error: Error, req?: server.ServerRequest) => void;
 export class App {
   port: number;
   server?: server.Server;
+  socket?: WebSocket;
   onUnexpectedRouteError: null | ErrorHandler = null;
   #middlewares = new Set<RequestHandler>();
   #routeHandlers = {
@@ -114,13 +114,16 @@ export class App {
   connectWebSocket = async () => {
     try {
       console.log(green("Connectando sockets!"));
-      const socket = await connectWebSocket(TWITCH_SOCKET_URL);
+      this.socket = await connectWebSocket(TWITCH_SOCKET_URL);
+      const socket = this.socket;
       socket.send(TWITCH_SOCKET_PASS);
       socket.send(TWITCH_SOCKET_NICK);
+      socket.send(TWITCH_SOCKET_LOGIN);
       const messages = async (): Promise<void> => {
         for await (const msg of socket) {
           if (typeof msg === "string") {
-            console.log(yellow(`< ${msg}`));
+            const parsedMessage = parseTwitchMessage(msg);
+            console.log(yellow(`< [PARSED] ${parsedMessage}`));
             if (msg === "PING :tmi.twitch.tv") {
               await socket.send("PING :tmi.twitch.tv");
             }
@@ -130,25 +133,7 @@ export class App {
         }
       };
 
-      const cli = async (): Promise<void> => {
-        const tpr = new TextProtoReader(new BufReader(Deno.stdin));
-        while (true) {
-          await Deno.stdout.write(encode("> "));
-          const line = await tpr.readLine();
-          if (line === null) {
-            break;
-          }
-          if (line === "close") {
-            break;
-          } else if (line === "ping") {
-            await socket.ping();
-          } else {
-            await socket.send(line);
-          }
-        }
-      };
-
-      await Promise.race([messages(), cli()]).catch(console.error);
+      await Promise.race([messages()]).catch(console.error);
 
       if (!socket.isClosed) {
         await socket.close(1000).catch(console.error);
