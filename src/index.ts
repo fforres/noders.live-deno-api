@@ -2,7 +2,7 @@ import { parseSearch } from "./utils.ts";
 import { TWITCH_LOGIN_URL } from "./config.ts";
 import { App } from "./app.ts";
 
-const app = new App();
+const app = new App({ port: 4000 });
 
 app.attachMiddleware(async (req) => {});
 
@@ -48,5 +48,7 @@ app.onPost("/api/twitch/test", (request) =>
   })
 );
 
+app.connectTwitch();
 app.startListening();
-app.connectWebSocket();
+app.startWebsocketServer();
+app.startTests();

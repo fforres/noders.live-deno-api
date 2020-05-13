@@ -13,18 +13,16 @@ export const parseSearch = (queryString: string) => {
   return query;
 };
 
-export const commands = {
-  VOTE: "VOTE",
-} as const;
+export enum chatCommands {
+  HOLA = "!HOLA",
+  VOTE = "!VOTE",
+  TEST = "!TEST",
+}
 
 export const parseTwitchMessage = (message: string) => {
-  const rawMessage = message?.split("PRIVMSG")[1]?.split(":")[1];
-  let command = null;
-  if (rawMessage[0] === "!") {
-    command = commands.VOTE;
+  const isPrivateMessage = message.includes("PRIVMSG");
+  if (isPrivateMessage) {
+    return message?.split("PRIVMSG")?.[1]?.split(":")?.[1];
   }
-  return {
-    command,
-    mesage: rawMessage,
-  };
+  return message;
 };
