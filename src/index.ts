@@ -1,10 +1,10 @@
 import { parseSearch } from "./utils.ts";
 import { TWITCH_LOGIN_URL } from "./config.ts";
 import { App } from "./app.ts";
+import { Sockets } from "./sockets.ts";
 
 const app = new App({ port: 4000 });
-
-app.attachMiddleware(async (req) => {});
+const socketsApp = new Sockets({ port: 4001 });
 
 app.onGet("/favicon.ico", (request) =>
   request.respond({
@@ -22,6 +22,7 @@ app.onGet("/login", (request) =>
     }),
   })
 );
+
 app.onGet("/api/twitch/callback", (request) => {
   const url = new URL(request.url, `localhost:3000`);
   const queryParms = parseSearch(url.search);
@@ -48,7 +49,7 @@ app.onPost("/api/twitch/test", (request) =>
   })
 );
 
-app.connectTwitch();
 app.startListening();
-app.startWebsocketServer();
-app.startTests();
+socketsApp.connectTwitch();
+socketsApp.startWebsocketServer();
+socketsApp.startTests();
