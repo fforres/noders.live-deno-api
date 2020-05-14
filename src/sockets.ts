@@ -123,7 +123,7 @@ export class Sockets {
               if (message?.startsWith(chatCommands.VOTE)) {
                 await this.#publishMessage({
                   command: chatCommands.VOTE,
-                  message: message.split(chatCommands.VOTE)?.[1],
+                  message: message.split(chatCommands.VOTE)?.[1].trim(),
                 });
               }
             }

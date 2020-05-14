@@ -52,4 +52,4 @@ app.onPost("/api/twitch/test", (request) =>
 app.startListening();
 socketsApp.connectTwitch();
 socketsApp.startWebsocketServer();
-socketsApp.startTests();
+// socketsApp.startTests();
