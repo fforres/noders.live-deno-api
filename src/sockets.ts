@@ -17,6 +17,7 @@ import {
   TWITCH_SOCKET_NICK,
   TWITCH_SOCKET_URL,
   TWITCH_SOCKET_LOGIN,
+  PORT,
 } from "./config.ts";
 import { chatCommands, parseTwitchMessage } from "./utils.ts";
 
@@ -31,7 +32,7 @@ export class Sockets {
   allWebsockets: Set<WebSocket> = new Set();
 
   static defaultConfig = {
-    port: 3001,
+    port: PORT,
   };
 
   constructor(config: { port?: number } = {}) {

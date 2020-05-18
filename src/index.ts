@@ -4,7 +4,7 @@ import { Api } from "./app.ts";
 import { Sockets } from "./sockets.ts";
 
 const app = await Api({ port: Number(PORT) });
-const socketsApp = new Sockets({ port: Number(PORT) + 1 });
+const socketsApp = new Sockets({ port: Number(PORT) });
 
 app.run();
 socketsApp.connectTwitch();
