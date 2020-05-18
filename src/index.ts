@@ -1,10 +1,10 @@
 import { parseSearch } from "./utils.ts";
-import { TWITCH_LOGIN_URL } from "./config.ts";
+import { TWITCH_LOGIN_URL, PORT } from "./config.ts";
 import { Api } from "./app.ts";
 import { Sockets } from "./sockets.ts";
 
-const app = await Api({ port: 4000 });
-const socketsApp = new Sockets({ port: 4001 });
+const app = await Api({ port: Number(PORT) });
+const socketsApp = new Sockets({ port: Number(PORT) + 1 });
 
 app.run();
 socketsApp.connectTwitch();
