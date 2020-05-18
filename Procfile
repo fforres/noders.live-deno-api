@@ -1,1 +1,1 @@
-web: deno run --allow-net --cached-only src/index.ts
+web: deno run --allow-net --allow-read --cached-only src/index.ts
