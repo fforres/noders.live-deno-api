@@ -39,43 +39,24 @@ export class Sockets {
     this.port = mergedConfig.port;
   }
 
-  startWebsocketServer = async () => {
-    this.socketServer = server.serve({ port: this.port });
-    console.log(
-      green(`🔥🔥🔥 Servidor WS corriendo en el puerto :${this.port} 🔥🔥🔥 \n`)
-    );
-    for await (const req of this.socketServer) {
-      const { conn, r: bufReader, w: bufWriter, headers } = req;
-      try {
-        const sock = await acceptWebSocket({
-          conn,
-          bufReader,
-          bufWriter,
-          headers,
-        });
-        // TODO: Figure out what's going on with sockets only accepting 1 connection
-        this.allWebsockets.add(sock);
-        try {
-          for await (const ev of sock) {
-            if (isWebSocketCloseEvent(ev)) {
-              console.log(yellow(`Socket cerrado! ${ev.code} - ${ev.reason}`));
-              this.allWebsockets.delete(sock);
-            }
-          }
-        } catch (err) {
-          console.error(red(`Error reciebiendo frame: ${err}`));
-          if (!sock.isClosed) {
-            await sock.close(1000).catch(console.error);
-          }
+  private listenWebsockets = async (websocket: WebSocket) => {
+    this.allWebsockets.add(websocket);
+    try {
+      for await (const ev of websocket) {
+        if (isWebSocketCloseEvent(ev)) {
+          console.log(yellow(`Socket cerrado! ${ev.code} - ${ev.reason}`));
+          this.allWebsockets.delete(websocket);
         }
-      } catch (err) {
-        console.error(red(`Error aceptando socket:: ${err}`));
-        await req.respond({ status: 400 });
+      }
+    } catch (err) {
+      console.error(red(`Error reciebiendo frame: ${err}`));
+      if (!websocket.isClosed) {
+        await websocket.close(1000).catch(console.error);
       }
     }
   };
 
-  #publishMessage = async (message: {
+  private publishMessage = async (message: {
     command: chatCommands;
     message: string;
   }) => {
@@ -104,6 +85,28 @@ export class Sockets {
     }
   };
 
+  startWebsocketServer = async () => {
+    this.socketServer = server.serve({ port: this.port });
+    console.log(
+      green(`🔥🔥🔥 Servidor WS corriendo en el puerto :${this.port} 🔥🔥🔥 \n`)
+    );
+    for await (const req of this.socketServer) {
+      const { conn, r: bufReader, w: bufWriter, headers } = req;
+      try {
+        const sock = await acceptWebSocket({
+          conn,
+          bufReader,
+          bufWriter,
+          headers,
+        });
+        this.listenWebsockets(sock);
+      } catch (err) {
+        console.error(red(`Error aceptando socket:: ${err}`));
+        await req.respond({ status: 400 });
+      }
+    }
+  };
+
   connectTwitch = async () => {
     try {
       console.log(green("💬💬💬 Chat de twitch conectado! 💬💬💬 \n"));
@@ -121,7 +124,7 @@ export class Sockets {
               const message = parseTwitchMessage(msg);
               console.log(magenta("<"), yellow(`${message}`));
               if (message?.startsWith(chatCommands.VOTE)) {
-                await this.#publishMessage({
+                await this.publishMessage({
                   command: chatCommands.VOTE,
                   message: message.split(chatCommands.VOTE)?.[1].trim(),
                 });
@@ -143,7 +146,7 @@ export class Sockets {
     const voteOptions = ["ANGULAR", "EMBER", "VUE", "REACT", "SVELTE"];
     setInterval(() => {
       const item = voteOptions[Math.floor(Math.random() * voteOptions.length)];
-      this.#publishMessage({
+      this.publishMessage({
         command: chatCommands.VOTE,
         message: item,
       });
