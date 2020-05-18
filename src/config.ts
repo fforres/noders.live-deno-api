@@ -4,7 +4,7 @@ const getEnvVars = (): any => {
   try {
     return config();
   } catch (e) {
-    return Deno.env;
+    return Deno.env.toObject();
   }
 };
 
