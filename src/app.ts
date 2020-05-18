@@ -8,11 +8,12 @@ import { DB_NAME } from "./config.ts";
 // Optional: Generate router and hook routes to it
 const router = new Router();
 
-router.get("/clear", (context) => {});
-
 export const Api = async (config = { port: 4000 }) => {
   const db = await open(DB_NAME);
   const app = new Application(config);
+
+  router.get("/clear", (context) => {});
+
   app.use("/api", router);
   app.get("/api", () => "Noders.live Twitch API");
   return app;
