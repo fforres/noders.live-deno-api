@@ -1,11 +1,19 @@
 import { config } from "https://deno.land/x/dotenv/mod.ts";
 
+const getEnvVars = (): any => {
+  try {
+    return config();
+  } catch (e) {
+    return Deno.env;
+  }
+};
+
 const {
   TWITCH_CODE,
   TWITCH_APPLICATION_CLIENT_ID,
   DATABASE_NAME,
   PORT: ENV_PORT,
-} = config();
+} = getEnvVars();
 const TWITCH_NICK = "backargorg";
 
 export const TWITCH_SOCKET_URL = "ws://irc-ws.chat.twitch.tv:80";
