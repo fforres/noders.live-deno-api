@@ -2,14 +2,14 @@ import {
   Application,
   Router,
 } from "https://deno.land/x/denotrain@v0.4.4/mod.ts";
-import { open, save } from "https://deno.land/x/sqlite/mod.ts";
+// import { open, save } from "https://deno.land/x/sqlite/mod.ts";
 import { DB_NAME } from "./config.ts";
 // Create a new application (port defualts to 3000, hostname to 0.0.0.0)
 // Optional: Generate router and hook routes to it
 const router = new Router();
 
 export const Api = async (config = { port: 4000 }) => {
-  const db = await open(DB_NAME);
+  // const db = await open(DB_NAME);
   const app = new Application(config);
 
   router.get("/clear", (context) => {});
