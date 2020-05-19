@@ -13,6 +13,8 @@ import {
   TWITCH_SOCKET_LOGIN,
 } from "./config.ts";
 import { publishMessage } from "./sockets.ts";
+import { publishNewVote } from "./Votes/sockets.ts";
+import { incrementVote, VOTES, VOTES_KEYS } from "./Votes/model.ts";
 
 let twitchChat: WebSocket | undefined;
 
@@ -32,10 +34,13 @@ export const connectTwitch = async () => {
             const message = parseTwitchMessage(msg);
             console.log(magenta("<"), yellow(`${message}`));
             if (message?.startsWith(chatCommands.VOTE)) {
-              await publishMessage({
-                command: chatCommands.VOTE,
-                message: message.split(chatCommands.VOTE)?.[1].trim(),
-              });
+              const voteId = message
+                .split(chatCommands.VOTE)?.[1]
+                .trim() as VOTES_KEYS;
+              if (VOTES[voteId]) {
+                const number = await incrementVote(voteId);
+                await publishNewVote(voteId, number);
+              }
             }
           }
         }
