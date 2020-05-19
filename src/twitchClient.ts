@@ -18,12 +18,11 @@ let twitchChat: WebSocket | undefined;
 
 export const connectTwitch = async () => {
   try {
-    console.log(green("💬💬💬 Chat de twitch conectado! 💬💬💬 \n"));
     twitchChat = await connectWebSocket(TWITCH_SOCKET_URL);
     twitchChat.send(TWITCH_SOCKET_PASS);
     twitchChat.send(TWITCH_SOCKET_NICK);
     twitchChat.send(TWITCH_SOCKET_LOGIN);
-
+    console.log(green("💬💬💬 Twitch chat connected! 💬💬💬 \n"));
     const messages = async (socket: WebSocket): Promise<void> => {
       for await (const msg of socket) {
         if (typeof msg === "string") {

@@ -77,13 +77,6 @@ export const handleWebsocket = async (req: server.ServerRequest) => {
 };
 
 const startTests = () => {
-  // setInterval(() => {
-  //   publishMessage({
-  //     command: chatCommands.TEST,
-  //     message: `Message! - ${Date.now().toString()}`,
-  //   });
-  // }, 1000);
-
   const voteOptions = ["ANGULAR", "EMBER", "VUE", "REACT", "SVELTE"];
   setInterval(() => {
     const item = voteOptions[Math.floor(Math.random() * voteOptions.length)];

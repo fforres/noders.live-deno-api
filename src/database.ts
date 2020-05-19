@@ -1,8 +1,11 @@
+import { green } from "https://deno.land/std/fmt/colors.ts";
+import { REDIS_HOSTNAME, REDIS_PORT, REDIS_PASSWORD } from "./config.ts";
 import { connect } from "https://denopkg.com/keroxp/deno-redis/mod.ts";
 const redis = await connect({
-  hostname: "redis-14423.c83.us-east-1-2.ec2.cloud.redislabs.com",
-  port: 14423,
+  hostname: REDIS_HOSTNAME,
+  port: REDIS_PORT,
 });
-await redis.auth(`79f3j05Fo1XeEBFYI05LDJW5YCQZ7cs7`);
+await redis.auth(REDIS_PASSWORD);
+console.log(green(`💾💾💾 Databse Connected 💾💾💾 \n`));
 
 export const Redis = redis;
