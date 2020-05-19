@@ -1,3 +1,4 @@
+import { JSONSerializable } from "./types.ts";
 import * as server from "https://deno.land/std/http/server.ts";
 import {
   acceptWebSocket,
@@ -33,7 +34,7 @@ const listenWebsockets = async (websocket: WebSocket) => {
 
 export const publishMessage = async (message: {
   command: chatCommands;
-  message: string;
+  message: JSONSerializable;
 }) => {
   const parsedMessage = JSON.stringify(message);
   if (allWebsockets.size > 1) {
@@ -49,9 +50,11 @@ export const publishMessage = async (message: {
         return;
       }
       console.log(
-        blue(`[SOCKET] - Enviando mensaje: "`),
-        yellow(message.message),
-        blue('"')
+        magenta(`[SOCKET] - COMMAND: "`),
+        yellow(message.command),
+        magenta(`" - MESSAGE:"`),
+        yellow(JSON.stringify(message.message)),
+        magenta('"')
       );
       socket?.send(parsedMessage);
     } catch (e) {

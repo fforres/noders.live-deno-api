@@ -6,19 +6,14 @@ import {
   VOTES,
   getVotesById,
 } from "./model.ts";
-import { publishMessage } from "../sockets.ts";
-import { chatCommands } from "../utils.ts";
+import { publishNewVote } from "./sockets.ts";
 
 export const handleVote: RouteHandler = async (req, params) => {
   const voteId = params["vote_id"] as VOTES_KEYS;
   let number = "0";
   if (VOTES[voteId]) {
     number = await incrementVote(voteId);
-    console.log({ number });
-    publishMessage({
-      command: chatCommands.VOTE,
-      message: number,
-    });
+    await publishNewVote(voteId, number);
   }
   req.respond({
     body: JSON.stringify({
@@ -29,11 +24,16 @@ export const handleVote: RouteHandler = async (req, params) => {
 };
 
 export const handleGetVotes: RouteHandler = async (req, params) => {
-  const votes = await getAllVotes();
-  console.log({ votes });
+  const votesArray = await getAllVotes();
+  const votes: { [key: string]: number } = {};
+  for (let index = 0; index < votesArray.length; index += 2) {
+    const key = votesArray[index];
+    const value = Number(votesArray[index + 1]);
+    votes[key] = value;
+  }
   req.respond({
     body: JSON.stringify({
-      message: votes,
+      votes,
     }),
   });
 };
