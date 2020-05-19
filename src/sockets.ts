@@ -1,156 +1,93 @@
+import { JSONSerializable } from "./types.ts";
 import * as server from "https://deno.land/std/http/server.ts";
 import {
-  green,
+  acceptWebSocket,
+  WebSocket,
+  isWebSocketCloseEvent,
+} from "https://deno.land/std/ws/mod.ts";
+import {
   red,
   yellow,
   blue,
   magenta,
-} from "https://deno.land/std/fmt/colors.ts";
-import {
-  connectWebSocket,
-  WebSocket,
-  acceptWebSocket,
-  isWebSocketCloseEvent,
-} from "https://deno.land/std/ws/mod.ts";
-import {
-  TWITCH_SOCKET_PASS,
-  TWITCH_SOCKET_NICK,
-  TWITCH_SOCKET_URL,
-  TWITCH_SOCKET_LOGIN,
-  PORT,
-} from "./config.ts";
-import { chatCommands, parseTwitchMessage } from "./utils.ts";
+} from "https://deno.land/std@0.50.0/fmt/colors.ts";
+import { chatCommands } from "./utils.ts";
 
-type RequestHandler = (req: server.ServerRequest) => Promise<void>;
-type ErrorHandler = (error: Error, req?: server.ServerRequest) => void;
+const allWebsockets: Set<WebSocket> = new Set();
 
-export class Sockets {
-  port: number;
-  twitchChat?: WebSocket;
-  socketServer?: server.Server;
-  onUnexpectedRouteError: null | ErrorHandler = null;
-  allWebsockets: Set<WebSocket> = new Set();
-
-  static defaultConfig = {
-    port: PORT,
-  };
-
-  constructor(config: { port?: number } = {}) {
-    const mergedConfig = { ...Sockets.defaultConfig, ...config };
-    this.port = mergedConfig.port;
+const listenWebsockets = async (websocket: WebSocket) => {
+  allWebsockets.add(websocket);
+  try {
+    for await (const ev of websocket) {
+      if (isWebSocketCloseEvent(ev)) {
+        console.log(yellow(`Socket cerrado! ${ev.code} - ${ev.reason}`));
+        allWebsockets.delete(websocket);
+      }
+    }
+  } catch (err) {
+    console.error(red(`Error reciebiendo frame: ${err}`));
+    if (!websocket.isClosed) {
+      await websocket.close(1000).catch(console.error);
+    }
   }
+};
 
-  private listenWebsockets = async (websocket: WebSocket) => {
-    this.allWebsockets.add(websocket);
-    try {
-      for await (const ev of websocket) {
-        if (isWebSocketCloseEvent(ev)) {
-          console.log(yellow(`Socket cerrado! ${ev.code} - ${ev.reason}`));
-          this.allWebsockets.delete(websocket);
-        }
-      }
-    } catch (err) {
-      console.error(red(`Error reciebiendo frame: ${err}`));
-      if (!websocket.isClosed) {
-        await websocket.close(1000).catch(console.error);
-      }
-    }
-  };
-
-  private publishMessage = async (message: {
-    command: chatCommands;
-    message: string;
-  }) => {
-    const parsedMessage = JSON.stringify(message);
-    if (this.allWebsockets.size > 1) {
-      console.log(
-        magenta(`Publicando mensaje a `),
-        yellow(this.allWebsockets.size.toString()),
-        magenta(" socket")
-      );
-    }
-    for await (const socket of this.allWebsockets) {
-      try {
-        if (socket.isClosed) {
-          return;
-        }
-        console.log(
-          blue(`[SOCKET] - Enviando mensaje: "`),
-          yellow(message.message),
-          blue('"')
-        );
-        socket?.send(parsedMessage);
-      } catch (e) {
-        console.error(red(`Error: ${e}`));
-      }
-    }
-  };
-
-  startWebsocketServer = async () => {
-    this.socketServer = server.serve({ port: this.port });
+export const publishMessage = async (message: {
+  command: chatCommands;
+  message: JSONSerializable;
+}) => {
+  const parsedMessage = JSON.stringify(message);
+  if (allWebsockets.size > 1) {
     console.log(
-      green(`🔥🔥🔥 Servidor WS corriendo en el puerto :${this.port} 🔥🔥🔥 \n`)
+      magenta(`Publicando mensaje a `),
+      yellow(allWebsockets.size.toString()),
+      magenta(" socket")
     );
-    for await (const req of this.socketServer) {
-      const { conn, r: bufReader, w: bufWriter, headers } = req;
-      try {
-        const sock = await acceptWebSocket({
-          conn,
-          bufReader,
-          bufWriter,
-          headers,
-        });
-        this.listenWebsockets(sock);
-      } catch (err) {
-        console.error(red(`Error aceptando socket:: ${err}`));
-        await req.respond({ status: 400 });
-      }
-    }
-  };
-
-  connectTwitch = async () => {
+  }
+  for await (const socket of allWebsockets) {
     try {
-      console.log(green("💬💬💬 Chat de twitch conectado! 💬💬💬 \n"));
-      this.twitchChat = await connectWebSocket(TWITCH_SOCKET_URL);
-      this.twitchChat.send(TWITCH_SOCKET_PASS);
-      this.twitchChat.send(TWITCH_SOCKET_NICK);
-      this.twitchChat.send(TWITCH_SOCKET_LOGIN);
-
-      const messages = async (socket: WebSocket): Promise<void> => {
-        for await (const msg of socket) {
-          if (typeof msg === "string") {
-            if (msg === "PING :tmi.twitch.tv") {
-              await socket.send("PING :tmi.twitch.tv");
-            } else {
-              const message = parseTwitchMessage(msg);
-              console.log(magenta("<"), yellow(`${message}`));
-              if (message?.startsWith(chatCommands.VOTE)) {
-                await this.publishMessage({
-                  command: chatCommands.VOTE,
-                  message: message.split(chatCommands.VOTE)?.[1].trim(),
-                });
-              }
-            }
-          }
-        }
-      };
-      await messages(this.twitchChat).catch(console.error);
-      if (!this.twitchChat.isClosed) {
-        await this.twitchChat.close(1000).catch(console.error);
+      if (socket.isClosed) {
+        return;
       }
+      console.log(
+        magenta(`[SOCKET] - COMMAND: "`),
+        yellow(message.command),
+        magenta(`" - MESSAGE:"`),
+        yellow(JSON.stringify(message.message)),
+        magenta('"')
+      );
+      socket?.send(parsedMessage);
     } catch (e) {
-      console.error(red("ERROR ON THE SOCKET!"), red(e));
+      console.error(red(`Error: ${e}`));
     }
-  };
+  }
+};
 
-  startTests = () => {
-    const voteOptions = ["ANGULAR", "EMBER", "VUE", "REACT", "SVELTE"];
-    setInterval(() => {
-      const item = voteOptions[Math.floor(Math.random() * voteOptions.length)];
-      this.publishMessage({
-        command: chatCommands.VOTE,
-        message: item,
-      });
-    }, 450);
-  };
-}
+export const handleWebsocket = async (req: server.ServerRequest) => {
+  const { conn, r: bufReader, w: bufWriter, headers } = req;
+  try {
+    const sock = await acceptWebSocket({
+      conn,
+      bufReader,
+      bufWriter,
+      headers,
+    });
+    listenWebsockets(sock);
+  } catch (err) {
+    console.error(red(`Error aceptando socket:: ${err}`));
+    await req.respond({ status: 400 });
+  }
+};
+
+const startTests = () => {
+  const voteOptions = ["ANGULAR", "EMBER", "VUE", "REACT", "SVELTE"];
+  setInterval(() => {
+    const item = voteOptions[Math.floor(Math.random() * voteOptions.length)];
+    publishMessage({
+      command: chatCommands.VOTE,
+      message: item,
+    });
+  }, 150);
+};
+
+// startTests();

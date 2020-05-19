@@ -1,55 +1,23 @@
-import { parseSearch } from "./utils.ts";
-import { TWITCH_LOGIN_URL, PORT } from "./config.ts";
-import { Api } from "./app.ts";
-import { Sockets } from "./sockets.ts";
+import {
+  handleVote,
+  handleGetVotes,
+  handleGetVotesById,
+  handleClear,
+} from "./Votes/router.ts";
+import { App } from "./server.ts";
+import { handleWebsocket } from "./sockets.ts";
+import { connectTwitch } from "./twitchClient.ts";
+import "./database.ts";
 
-const app = await Api({ port: Number(PORT) });
-const socketsApp = new Sockets({ port: Number(PORT) });
+const app = new App();
+connectTwitch();
+app.get("/api", (req, params) => {
+  console.log(params);
+});
+app.get("/api/votes", handleGetVotes);
+app.post("/api/votes/clear", handleClear);
+app.get("/api/votes/:vote_id", handleGetVotesById);
+app.post("/api/votes/:vote_id/vote", handleVote);
+app.ws("/ws", handleWebsocket);
 
-app.run();
-socketsApp.connectTwitch();
-socketsApp.startWebsocketServer();
-// socketsApp.startTests();
-
-// app.onGet("/favicon.ico", (request) =>
-//   request.respond({
-//     body: JSON.stringify({
-//       dummy: "favicon",
-//     }),
-//   })
-// );
-
-// app.onGet("/login", (request) =>
-//   request.respond({
-//     status: 307,
-//     headers: new Headers({
-//       location: TWITCH_LOGIN_URL,
-//     }),
-//   })
-// );
-
-// app.onGet("/api/twitch/callback", (request) => {
-//   const url = new URL(request.url, `localhost:3000`);
-//   const queryParms = parseSearch(url.search);
-//   const code = queryParms["code"];
-//   if (code) {
-//     return request.respond({ body: `Tu codigo ${code}` });
-//   }
-//   return request.respond({ body: "" });
-// });
-
-// app.onGet("/api/twitch/test", (request) =>
-//   request.respond({
-//     body: JSON.stringify({
-//       hello: "Hello World",
-//     }),
-//   })
-// );
-
-// app.onPost("/api/twitch/test", (request) =>
-//   request.respond({
-//     body: JSON.stringify({
-//       hello: "Hello World",
-//     }),
-//   })
-// );
+app.listen();
