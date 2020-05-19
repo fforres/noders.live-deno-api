@@ -14,6 +14,13 @@ export const incrementVote = async (vote: VOTES_KEYS) => {
   return Redis.zincrby("VOTES", 1, vote);
 };
 
+export const clearVotes = async () => {
+  const sets = await Redis.zrange("VOTES", 0, -1);
+  console.log(sets);
+  const removes = await Redis.zrem("VOTES", ...sets);
+  console.log(removes);
+};
+
 export const getAllVotes = async () => {
   return Redis.zrange("VOTES", 0, -1, { withScore: true });
 };

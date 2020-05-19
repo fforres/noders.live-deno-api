@@ -5,6 +5,7 @@ import {
   VOTES_KEYS,
   VOTES,
   getVotesById,
+  clearVotes,
 } from "./model.ts";
 import { publishNewVote } from "./sockets.ts";
 
@@ -21,6 +22,10 @@ export const handleVote: RouteHandler = async (req, params) => {
       message: number,
     }),
   });
+};
+
+export const handleClear: RouteHandler = async () => {
+  return clearVotes();
 };
 
 export const handleGetVotes: RouteHandler = async (req, params) => {
